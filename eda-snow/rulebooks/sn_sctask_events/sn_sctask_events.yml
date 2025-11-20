@@ -1,0 +1,44 @@
+---
+- name: Poll for updated sc_task records assigned to AAP_EDA in ServiceNow
+  hosts: all
+  execution_strategy: parallel
+  sources:
+    - name: Poll for updated sc_task records assigned to AAP_EDA in ServiceNow
+      servicenow.itsm.records:
+        table: sc_task
+        interval: 60
+#        sysparm_query: "{{ 'assignment_groupIN' + sn_sctask_events_assign }}"
+        sysparm_query: assignment_groupIN0123456789abcdef
+
+  rules:
+
+    - name: Enrich event data
+      # sys_id is simply for a sanity check that we have an event
+      # sys_mod_count is to prevent duplicate events for the same SCTASK, e.g., if it's reassigned or otherwise updated
+      # ... there may be a more effective way to do this, such as using sys_created_on for the timestamp_field in the source?
+      condition: event.sys_id is defined and event.sys_mod_count=="0"
+      action:
+        run_job_template:
+          name: "EDA - ServiceNow - Enrich Event"
+          organization: Default
+          post_events: true
+          job_args:
+            extra_vars:
+              sn_sys_id: "{{ event.sys_id }}"
+              sn_api_columns: [cat_item.sys_name, cmdb_ci.name, request_item.opened_by.active, request_item.opened_by.locked_out, request_item.opened_by.email]
+#              sn_api_columns: "{{ sn_sctask_events_columns }}"
+              sn_api_path: api/now/table/sc_task
+
+    - name: Execute workflow based on catalog item
+      condition: event.enriched_event is defined
+      action:
+### Reference included for debug
+#        debug:
+#          var: event
+### Reference included for job template rather than WF template
+#        run_job_template:
+#          name: "{{ 'EDA - ServiceNow - ' + event.enriched_event[0]['cat_item.sys_name'] }}"
+#          organization: "Default"
+        run_workflow_template:
+          name: "{{ 'EDA - ServiceNow - ' + event.enriched_event[0]['cat_item.sys_name'] }}"
+          organization: "Default"

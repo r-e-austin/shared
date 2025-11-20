@@ -1,0 +1,28 @@
+---
+- name: EDA - ServiceNow - Take ownership of sc_task
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+
+    - name: POST to API input set
+      servicenow.itsm.api:
+        instance:
+          host: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}"
+          username: "{{ lookup('ansible.builtin.env', 'SN_USERNAME') }}"
+          password: "{{ lookup('ansible.builtin.env', 'SN_PASSWORD') }}"
+#        api_path is set to an import set
+        api_path: api/now/import/u_ansible_rest
+        action: post
+        data:
+#          u_target_sys_id is a custom field that coalesces on sys_id from the target table
+          u_target_sys_id: "{{ ansible_eda.event.original_event.sys_id }}"
+          u_assigned_to: 0123456789abcdef
+          u_state: 2
+          u_work_notes: "Task picked up by Ansible!"
+      register: api_results
+
+    - name: Display results
+      delegate_to: localhost
+      ansible.builtin.debug:
+        var: api_results

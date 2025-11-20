@@ -1,0 +1,30 @@
+---
+- name: Enrich EDA event from ServiceNow API
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+
+    - name: Get sc_task info
+      servicenow.itsm.api_info:
+        instance:
+          host: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}"
+          username: "{{ lookup('ansible.builtin.env', 'SN_USERNAME') }}"
+          password: "{{ lookup('ansible.builtin.env', 'SN_PASSWORD') }}"
+#        api_path: api/now/table/sc_task
+        api_path: "{{ sn_api_path }}"
+#        sysparm_query: sys_idININ0123456789abcdef
+        sysparm_query: "{{ 'sys_idIN' + sn_sys_id }}"
+#        columns: [sc_item_option.item_option_new.name, sc_item_option.value]
+        columns: "{{ sn_api_columns | default([]) }}"
+      register: api_result
+
+    - name: Use set_stats to populate post_events
+      ansible.builtin.set_stats:
+        data:
+          original_event: "{{ ansible_eda.event }}"
+          enriched_event: "{{ api_result.record }}"
+
+    - name: Display enriched_event
+      ansible.builtin.debug:
+        var: api_result.record
