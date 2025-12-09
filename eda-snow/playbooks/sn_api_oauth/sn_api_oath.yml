@@ -1,0 +1,42 @@
+---
+- name: ServiceNow API Info
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+
+    - name: Get API info based on extra_vars
+      servicenow.itsm.api_info:
+        instance:
+        ### OAuth configuration
+        ### OAuth reaches out to SNow with SN_CLIENT_ID & SN_CLIENT_SECRET to establish
+        ###   the application identity
+        ### The SN_USERNAME and SN_PASSWORD are then used to act on behalf of that user
+        ### Create a custom credential type with env injectors
+        # SN_HOST: your instance
+        # SN_USERNAME: the user defined for the integration
+        # SN_PASSWORD: that user's password
+        # SN_CLIENT_ID: OAuth client ID
+        # SN_CLIENT_SECRET: OAuth client secret
+        # SN_GRANT_TYPE: Set to client_credentials when using OAuth
+          host: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}"
+          username: "{{ lookup('ansible.builtin.env', 'SN_USERNAME') }}"
+          password: "{{ lookup('ansible.builtin.env', 'SN_PASSWORD') }}"
+          client_id: "{{ lookup('ansible.builtin.env', 'SN_CLIENT_ID') }}"
+          client_secret: "{{ lookup('ansible.builtin.env', 'SN_CLIENT_SECRET') }}"
+          grant_type: "{{ lookup('ansible.builtin.env', 'SN_GRANT_TYPE') }}"
+#        api_path: api/now/table/sc_item_option_mtom
+        api_path: "{{ sn_api_path }}"
+#        sysparm_query: request_itemIN0123456789abcdef
+        sysparm_query: "{{ sn_api_sysparmq }}"
+#        columns: [sc_item_option.item_option_new.name, sc_item_option.value]
+        columns: "{{ sn_api_columns | default([]) }}"
+      register: api_results
+      until: api_results.record is defined and api_results.record | length > 0
+      retries: 3
+      delay: 5
+
+    - name: Display results
+      delegate_to: localhost
+      ansible.builtin.debug:
+        var: api_results
