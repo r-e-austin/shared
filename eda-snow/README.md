@@ -84,6 +84,14 @@
 
 ## Playbooks
 
+### sn_api_oauth
+- Requires "localhost" inventory in AAP to hit API
+  * Alternatively delegate_to: localhost and pass limit to job template 
+- Requires project collections/requirements.yml install of servicenow.itms OR
+  custom EE built with servicenow.itsm
+- Requires credentials for ServiceNow
+- This playbook is specifically configured to demonstrate use of the OAuth custom credential type
+
 ### eda_snow_enrich_event
 - Requires "localhost" inventory in AAP to hit API
   * Alternatively delegate_to: localhost and pass limit to job template 
