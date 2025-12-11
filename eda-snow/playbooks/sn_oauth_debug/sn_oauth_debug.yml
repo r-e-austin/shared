@@ -1,0 +1,30 @@
+---
+- name: ServiceNow OAuth login debug
+  hosts: localhost
+  gather_facts: false
+  vars:
+    sn_instance: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}"
+    sn_client_id: "{{ lookup('ansible.builtin.env', 'SN_CLIENT_ID') }}"
+    sn_client_secret: "{{ lookup('ansible.builtin.env', 'SN_CLIENT_SECRET') }}"
+    sn_username: "{{ lookup('ansible.builtin.env', 'SN_USERNAME') }}"
+    sn_password: "{{ lookup('ansible.builtin.env', 'SN_PASSWORD') }}"
+
+  tasks:
+    - name: Request OAuth Token directly
+      ansible.builtin.uri:
+        url: "{{ sn_instance }}/oauth_token.do"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          grant_type: password
+          client_id: "{{ sn_client_id }}"
+          client_secret: "{{ sn_client_secret }}"
+          username: "{{ sn_username }}"
+          password: "{{ sn_password }}"
+        return_content: true
+        status_code: [200, 401, 403] # Don't fail the playbook on auth error
+      register: oauth_response
+
+    - name: Show the FULL JSON response
+      ansible.builtin.debug:
+        var: oauth_response.json
