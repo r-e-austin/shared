@@ -1,0 +1,101 @@
+# This is the AAP installer inventory file intended for the Container growth deployment topology.
+#
+# ### With the following modifications:
+# ### * External database
+# ### * External load-balancer
+# ### * Custom CA trust, e.g., an enterprise PKI signer
+# This inventory file expects to be run from a separate, utility node from the containerized platform host.
+#
+# Please consult the Ansible Automation Platform product documentation about this topology's tested hardware configuration.
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/tested_deployment_models/container-topologies
+#
+# Please consult the docs if you're unsure what to add
+# For all optional variables please consult the included README.md
+# or the Ansible Automation Platform documentation:
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation
+
+# This section is for your AAP Gateway host(s)
+# -----------------------------------------------------
+[automationgateway]
+all-in-one.aap.domain.tld
+
+# This section is for your AAP Controller host(s)
+# -----------------------------------------------------
+[automationcontroller]
+all-in-one.aap.domain.tld
+
+# This section is for your AAP Automation Hub host(s)
+# -----------------------------------------------------
+[automationhub]
+all-in-one.aap.domain.tld
+
+# This section is for your AAP EDA Controller host(s)
+# -----------------------------------------------------
+[automationeda]
+all-in-one.aap.domain.tld
+
+# This section is for the AAP database
+# -----------------------------------------------------
+[database]
+# ### For an external, customer-managed DB, do not include a host here!
+
+[all:vars]
+# Ansible
+# ansible_connection=local
+# ### When running from a separate, utility node, comment out local connections!
+
+# Common variables
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#ref-general-inventory-variables
+# -----------------------------------------------------
+
+# Load balancer
+# ### Set the gateway_main_url variable to the hostname of the Load Balancer used to reverse proxy into the environment
+gateway_main_url=https://aap.domain.tld
+
+# Custom CA certs
+# ### Concatenate required certs into a single PEM bundle to be trusted by all components.
+# ### A common pattern is concatenating one's Enterprise PKI signer or intermediate with AWS's RDS certs
+# ### E.g.,
+# ### 1. Pull down the AWS global bundle: curl -o ~/aap-installer/certs/aws-rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+# ### 2. Concatenate this with any internal CAs you need to trust, e.g., if you have an internal CA that signs the cert for your NLB or other internal resources that you might need AAP to trust: 
+# ###    cat ~/aap/certs/aws-rds-global-bundle.pem ~/aap/certs/wawa-internal-ca.pem > ~/aap/certs/aap-custom-trust.pem
+# ### 3. Add the custom_ca_cert variable:
+custom_ca_cert=/installer/location/aap-installer/certs/aap-custom-trust.pem
+
+postgresql_admin_username=postgres
+postgresql_admin_password=redhat
+
+registry_username=rh-username
+registry_password=rh-password
+
+redis_mode=standalone
+
+# AAP Gateway
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#ref-gateway-variables
+# -----------------------------------------------------
+gateway_admin_password=redhat
+gateway_pg_host=db-host.aap.domain.tld
+gateway_pg_password=redhat
+
+# AAP Controller
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#ref-controller-variables
+# -----------------------------------------------------
+controller_admin_password=redhat
+controller_pg_host=db-host.aap.domain.tld
+controller_pg_password=redhat
+controller_percent_memory_capacity=0.5
+
+# AAP Automation Hub
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#ref-hub-variables
+# -----------------------------------------------------
+hub_admin_password=redhat
+hub_pg_host=db-host.aap.domain.tld
+hub_pg_password=redhat
+hub_seed_collections=false
+
+# AAP EDA Controller
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#event-driven-ansible-controller
+# -----------------------------------------------------
+eda_admin_password=redhat
+eda_pg_host=db-host.aap.domain.tld
+eda_pg_password=redhat
