@@ -1,0 +1,89 @@
+---
+- name: ServiceNow Audit sc_task queue
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ### Jinja --> Ansible --> Slack garbles this unless abstracted
+    newline: "\n"
+
+  tasks:
+
+    - name: Get sc_task queue info
+      servicenow.itsm.api_info:
+        instance:
+        ### OAuth configuration
+        ### OAuth reaches out to SNow with SN_CLIENT_ID & SN_CLIENT_SECRET to establish
+        ###   the application identity
+        ### The SN_USERNAME and SN_PASSWORD are then used to act on behalf of that user
+        # SN_HOST: your instance
+        # SN_USERNAME: the user defined for the integration
+        # SN_PASSWORD: that user's password
+        # SN_CLIENT_ID: OAuth client ID
+        # SN_CLIENT_SECRET: OAuth client secret
+        # SN_GRANT_TYPE: Set to password when using Resource Owner grant type in SNow
+          host: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}"
+          username: "{{ lookup('ansible.builtin.env', 'SN_USERNAME') }}"
+          password: "{{ lookup('ansible.builtin.env', 'SN_PASSWORD') }}"
+          client_id: "{{ lookup('ansible.builtin.env', 'SN_CLIENT_ID') }}"
+          client_secret: "{{ lookup('ansible.builtin.env', 'SN_CLIENT_SECRET') }}"
+          grant_type: "{{ lookup('ansible.builtin.env', 'SN_GRANT_TYPE') }}"
+#        api_path: api/now/table/sc_task
+        api_path: "{{ sn_api_path }}"
+#        sysparm_query: assignment_groupIN0123456789abcdef^sys_updated_onRELATIVELE@minute@ago@5
+        sysparm_query: "{{ sn_api_sysparmq }}"
+#        columns: [sys_class_name,sys_id,cmdb_ci.name,cat_item.sys_name,request_item.opened_by.email,number]
+        columns: "{{ sn_api_columns | default([]) }}"
+      register: api_results
+      until: api_results.record is defined and api_results.record | length > 0
+      retries: 3
+      delay: 5
+
+    - name: "Create links"
+      ansible.builtin.set_fact:
+        _temp_item_with_link: "{{ item | combine({'ui_link': _link_url}) }}"
+      vars:
+        _link_url: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}/nav_to.do?uri={{ item.sys_class_name }}.do?sys_id={{ item.sys_id }}"
+#      loop: "{{ [api_results.record] | flatten(levels=1) }}"
+      loop: "{{ api_results.record }}"
+      loop_control:
+        label: "{{ item.number }}"
+      register: _calculation_results
+      when: api_results.record | length > 0
+
+    - name: "Cleanup output"
+      ansible.builtin.set_fact:
+        sn_enriched_results: "{{ _calculation_results.results | map(attribute='ansible_facts._temp_item_with_link') | list }}"
+      when: _calculation_results.results | length > 0
+
+    - name: "Format Slack Message Lines"
+      ### Unfortunately, Slack Workflows do not allow robust formatting of text
+      ### Here we are faking it a bit by using a line of dashes, emojis, newlines, etc.
+      ansible.builtin.set_fact:
+        slack_lines: "{{ slack_lines | default([]) + [_line] }}"
+      vars:
+        _line: |
+          ___________________________________________________
+            🔹 {{ item.number }} 👤 {{ item['request_item.opened_by.email'] }}
+                  🤖 {{ item['cmdb_ci.name'] }}
+                  📨 {{ item['cat_item.sys_name'] }}
+                  🔗 {{ item.ui_link }}
+      loop: "{{ sn_enriched_results }}"
+      loop_control:
+        label: "{{ item.number }}"
+      when: sn_enriched_results | length > 0
+
+    - name: "Format Final Slack Message"
+      ansible.builtin.set_fact:
+        slack_msg_body: |
+          🚨 Found {{ sn_enriched_results | length }} Stale Tasks
+          {{ slack_lines | join(newline) }}
+      when: slack_lines | length > 0
+
+    - name: "Post message to Slack"
+      ansible.builtin.uri:
+        url: "{{ lookup('ansible.builtin.env', 'SLACK_WF_TRIGGER') }}"
+        method: POST
+        body_format: json
+        body:
+          ansible_message: "{{ slack_msg_body }}"
+      when: slack_msg_body | length > 0
