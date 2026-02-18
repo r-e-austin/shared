@@ -1,0 +1,27 @@
+plugin: servicenow.itsm.now
+columns:
+  - name
+  - ip_address
+  - fqdn
+  - sys_class_name
+  - operational_status
+  - os
+  - location
+  - used_for
+
+sysparm_query: "ip_addressISNOTEMPTY^sys_class_nameINSTANCEOFcmdb_ci_linux_server"
+
+compose:
+  ansible_host: ip_address
+#  target_app: used_for | default('unknown_app') | lower | replace(' ', '_')
+
+keyed_groups:
+  - key: used_for | lower | default('unknown') | replace(' ','_')
+    prefix: env
+#     separator: "_"
+#   - key: sys_class_name | lower
+#     prefix: class
+#     separator: "_"
+#   - key: site
+#     prefix: site
+#     separator: "_"
