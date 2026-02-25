@@ -119,6 +119,19 @@ WHERE
   s.name IN ('max_connections', 'shared_buffers', 'work_mem', 'maintenance_work_mem', 'autovacuum');
 ```
 
+#### Get most recent timestamp for maintenance actions
+
+```
+SELECT 
+  relname AS table_name, 
+  last_autovacuum, 
+  last_autoanalyze,
+  n_dead_tup
+FROM pg_stat_user_tables 
+WHERE last_autovacuum IS NOT NULL
+ORDER BY last_autovacuum DESC;
+```
+
 #### Get targeted index info about a table, e.g., main_host
 
 ```
@@ -141,4 +154,19 @@ SELECT
 FROM pg_stat_user_indexes i
 WHERE i.relname = 'main_host'
 ORDER BY i.idx_scan DESC; 
+```
+
+#### Get cache hit ratio for indexes
+
+```
+SELECT 
+  indexrelname AS index_name,
+  idx_blks_read AS disk_reads,
+  idx_blks_hit AS cache_hits,
+  CASE WHEN (idx_blks_hit + idx_blks_read) > 0 
+       THEN round((idx_blks_hit::numeric / (idx_blks_hit + idx_blks_read)) * 100, 2) 
+       ELSE 0 
+  END AS cache_hit_ratio
+FROM pg_statio_user_indexes
+ORDER BY idx_blks_read DESC;
 ```
