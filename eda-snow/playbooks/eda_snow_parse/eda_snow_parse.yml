@@ -1,0 +1,37 @@
+---
+- name: EDA - ServiceNow - Parse
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+
+    - name: Parse data from EDA event data
+      ansible.builtin.set_stats:
+        data:
+          target_server: "{{ ansible_eda.event.description | regex_search('Server Name: (.*)', '\\1') | first | trim }}"
+          target_action: "{{ ansible_eda.event.description | regex_search('Action: (.*)', '\\1') | first | trim }}"
+        aggregate: true
+
+    - name: Get sc_task info
+      servicenow.itsm.api_info:
+        instance:
+          host: "{{ lookup('ansible.builtin.env', 'SN_HOST') }}"
+          username: "{{ lookup('ansible.builtin.env', 'SN_USERNAME') }}"
+          password: "{{ lookup('ansible.builtin.env', 'SN_PASSWORD') }}"
+#        api_path: api/now/table/sc_item_option_mtom
+        api_path: "{{ sn_api_path }}"
+#        sysparm_query: request_itemIN0123456789abcdef
+        sysparm_query: "{{ 'sys_idIN' + sn_sys_id }}"
+#        columns: [sc_item_option.item_option_new.name, sc_item_option.value]
+        columns: "{{ sn_api_columns | default([]) }}"
+      register: api_result
+
+    - name: Use set_stats to populate post_events
+      ansible.builtin.set_stats:
+        data:
+          original_event: "{{ ansible_eda.event }}"
+          enriched_event: "{{ api_result.record }}"
+
+    - name: Display enriched_event
+      ansible.builtin.debug:
+        var: api_result.record
