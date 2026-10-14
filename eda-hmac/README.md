@@ -57,8 +57,8 @@ Certain enterprise services leverage HMAC hashing when making API calls; Event-D
 ## Rulebook
 
 ### rulebooks/tfc_run_task_events.yml
-	* This must reside in a `rulebooks/` subdirectory in the Project
-	* Includes a simple debug statement for testing, commented out
+- This must reside in a `rulebooks/` subdirectory in the Project
+- Includes a simple debug statement for testing, commented out
 
 ## Rulebook Activation
 
