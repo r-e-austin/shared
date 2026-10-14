@@ -1,0 +1,12 @@
+---
+- name: Terraform Cloud Run Task Execution
+  hosts: localhost
+  gather_facts: false
+  tasks:
+
+    - name: Use a nested variable from the full payload dictionary
+      ansible.builtin.debug:
+        msg: |
+          "The workspace name is {{ tfc_full_payload.workspace_name }}
+          The callback URL is {{ tfc_full_payload.task_result_callback_url }}"
+
