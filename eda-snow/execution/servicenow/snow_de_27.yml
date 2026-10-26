@@ -1,0 +1,18 @@
+---
+version: 3
+
+dependencies:
+  galaxy:
+    collections:
+      - name: servicenow.itsm
+  exclude:
+    all_from_collections:
+      # ansible.eda comes from de-minimal. Deps are already installed on the base image
+      - ansible.eda
+
+options:
+  package_manager_path: /usr/bin/microdnf
+
+images:
+  base_image:
+    name: registry.redhat.io/ansible-automation-platform-27/de-minimal-rhel9:latest
