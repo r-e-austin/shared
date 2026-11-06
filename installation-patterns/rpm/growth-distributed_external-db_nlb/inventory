@@ -63,7 +63,7 @@ gateway_main_url=https://aap.domain.tld
 # ### E.g.,
 # ### 1. Pull down the AWS global bundle: curl -o ~/aap-installer/certs/aws-rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 # ### 2. Concatenate this with any internal CAs you need to trust, e.g., if you have an internal CA that signs the cert for your NLB or other internal resources that you might need AAP to trust: 
-# ###    cat ~/aap/certs/aws-rds-global-bundle.pem ~/aap/certs/wawa-internal-ca.pem > ~/aap/certs/aap-custom-trust.pem
+# ###    cat ~/aap/certs/aws-rds-global-bundle.pem ~/aap/certs/internal-ca.pem > ~/aap/certs/aap-custom-trust.pem
 # ### 3. Add the custom_ca_cert variable:
 custom_ca_cert=/installer/location/aap-installer/certs/aap-custom-trust.pem
 
